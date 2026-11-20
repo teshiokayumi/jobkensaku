@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>求職票 検索支援ツール</title>
+<style>
+  :root{
+    --bg:#EAE6DA;
+    --panel:#FFFFFF;
+    --panel-alt:#F6F3EC;
+    --ink:#2A2A25;
+    --ink-soft:#6B6558;
+    --ink-faint:#948C7A;
+    --navy:#1F3A5F;
+    --navy-deep:#152840;
+    --navy-tint:#E7ECF1;
+    --hanko:#B23A2E;
+    --hanko-tint:#F6E4E1;
+    --line:#CDC6B4;
+    --line-soft:#E3DECF;
+    --font-serif:"Hiragino Mincho ProN","Yu Mincho","YuMincho",serif;
+    --font-sans:"Hiragino Kaku Gothic ProN","Yu Gothic Medium","Yu Gothic","Meiryo",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    font-size:14px;
+    line-height:1.7;
+    min-height:100vh;
+  }
+  a{color:var(--navy);}
+
+  /* ---------- Header ---------- */
+  .app-header{
+    padding:28px 32px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .app-header h1{
+    font-family:var(--font-serif);
+    font-size:26px;
+    font-weight:600;
+    margin:0 0 6px;
+    letter-spacing:.02em;
+  }
+  .app-header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+
+  .notice{
+    margin:16px 32px 0;
+    padding:14px 18px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    border-left:4px solid var(--navy);
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .notice strong{color:var(--ink);}
+  .notice ul{margin:8px 0 0;padding-left:18px;}
+  .notice li{margin-bottom:3px;}
+
+  /* ---------- Layout ---------- */
+  .layout{
+    display:flex;
+    align-items:flex-start;
+    gap:0;
+    padding:24px 32px 60px;
+    max-width:1240px;
+    margin:0 auto;
+  }
+  .sidebar{
+    width:250px;
+    flex:0 0 250px;
+    margin-right:24px;
+    position:sticky;
+    top:24px;
+  }
+  .sidebar-title{
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-bottom:10px;
+    padding-left:2px;
+  }
+  .candidate-tab{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    text-align:left;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:4px solid transparent;
+    padding:10px 12px;
+    margin-bottom:8px;
+    cursor:pointer;
+    font-family:var(--font-sans);
+    font-size:13px;
+    color:var(--ink);
+  }
+  .candidate-tab:hover{border-color:var(--navy);}
+  .candidate-tab.active{
+    border-left-color:var(--hanko);
+    background:var(--panel-alt);
+  }
+  .candidate-badge{
+    flex:0 0 auto;
+    width:22px;height:22px;
+    border-radius:50%;
+    border:1px solid var(--hanko);
+    color:var(--hanko);
+    font-size:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-serif);
+  }
+  .candidate-tab-label{
+    flex:1;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .candidate-tab-sub{
+    display:block;
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-top:2px;
+  }
+  .add-candidate-btn{
+    width:100%;
+    padding:10px 12px;
+    background:transparent;
+    border:1px dashed var(--line);
+    color:var(--ink-soft);
+    font-family:var(--font-sans);
+    font-size:13px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .add-candidate-btn:hover{border-color:var(--navy);color:var(--navy);}
+
+  .main{
+    flex:1;
+    min-width:0;
+  }
+
+  /* ---------- Candidate summary card ---------- */
+  .intake-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:20px 22px 0;
+  }
+  .intake-card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .intake-label-input{
+    font-family:var(--font-serif);
+    font-size:19px;
+    border:none;
+    border-bottom:1px solid transparent;
+    background:transparent;
+    color:var(--ink);
+    padding:2px 0;
+    width:100%;
+  }
+  .intake-label-input:focus{outline:none;border-bottom-color:var(--navy);}
+  .delete-link{
+    flex:0 0 auto;
+    font-size:12px;
+    color:var(--ink-faint);
+    background:none;border:none;cursor:pointer;
+    padding:4px;
+    white-space:nowrap;
+  }
+  .delete-link:hover{color:var(--hanko);}
+
+  .intake-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:12px 20px;
+    padding-bottom:18px;
+  }
+  .intake-field dt{
+    font-size:11px;
+    color:var(--ink-faint);
+    margin-bottom:2px;
+  }
+  .intake-field dd{
+    margin:0;
+    font-size:13px;
+    color:var(--ink);
+  }
+  .intake-field dd.empty{color:var(--ink-faint);font-style:normal;}
+
+  .perforation{
+    border:none;
+    border-top:1px dashed var(--line);
+    margin:0;
+  }
+
+  /* ---------- Filter row ---------- */
+  .filter-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    padding:16px 22px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    border-top:none;
+  }
+  .filter-field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .filter-field label{
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .filter-field input, .filter-field select{
+    font-family:var(--font-sans);
+    font-size:13px;
+    padding:6px 8px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--ink);
+    min-width:130px;
+  }
+  .filter-field input:focus, .filter-field select:focus{outline:1px solid var(--navy);}
+  .filter-hint{
+    font-size:10.5px;
+    color:var(--ink-faint);
+  }
+
+  /* ---------- Pattern groups ---------- */
+  .patterns{
+    border:1px solid var(--line);
+    border-top:none;
+    background:var(--panel);
+    padding:18px 22px 22px;
+  }
+  .pattern-group{margin-bottom:16px;}
+  .pattern-group:last-child{margin-bottom:0;}
+  .pattern-group-title{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  .pattern-group-title .count{
+    font-size:10.5px;
+    color:var(--ink-faint);
+  }
+  .chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .chip{
+    padding:7px 14px;
+    background:var(--panel);
+    border:1px solid var(--navy);
+    color:var(--navy);
+    font-family:var(--font-sans);
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  .chip:hover{background:var(--navy-tint);}
+  .chip.active{
+    background:var(--navy);
+    color:#fff;
+  }
+  .no-patterns{
+    color:var(--ink-faint);
+    font-size:12.5px;
+  }
+
+  /* ---------- Results ---------- */
+  .results-section{
+    margin-top:20px;
+  }
+  .results-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:12px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .results-header h2{
+    font-family:var(--font-serif);
+    font-size:16px;
+    margin:0;
+    font-weight:600;
+  }
+  .results-meta{
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .job-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .job-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--navy);
+    padding:14px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .job-main{flex:1;min-width:220px;}
+  .job-title{
+    font-size:14.5px;
+    font-weight:600;
+    margin:0 0 4px;
+    color:var(--ink);
+  }
+  .job-store{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 8px;
+  }
+  .job-badges{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    font-size:11.5px;
+  }
+  .job-badge{
+    padding:3px 8px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+  }
+  .job-badge.wage{
+    border-color:var(--hanko);
+    color:var(--hanko);
+    background:var(--hanko-tint);
+    font-weight:600;
+  }
+  .job-link-wrap{
+    flex:0 0 auto;
+    text-align:right;
+  }
+  .job-link{
+    display:inline-block;
+    padding:8px 16px;
+    border:1px solid var(--navy);
+    color:var(--navy);
+    text-decoration:none;
+    font-size:12.5px;
+    white-space:nowrap;
+  }
+  .job-link:hover{background:var(--navy);color:#fff;}
+  .job-source{
+    display:block;
+    margin-top:6px;
+    font-size:10.5px;
+    color:var(--ink-faint);
+  }
+
+  .load-more{
+    margin-top:14px;
+    width:100%;
+    padding:11px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--navy);
+    font-family:var(--font-sans);
+    font-size:13px;
+    cursor:pointer;
+  }
+  .load-more:hover{border-color:var(--navy);}
+
+  .state-message{
+    padding:24px;
+    text-align:center;
+    color:var(--ink-soft);
+    background:var(--panel);
+    border:1px solid var(--line);
+    font-size:13px;
+  }
+  .state-message.error{color:var(--hanko);}
+  .debug-url{
+    margin-top:10px;
+    padding:8px 10px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    font-family:ui-monospace,"SF Mono",Consolas,monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    word-break:break-all;
+    user-select:all;
+    text-align:left;
+  }
+  .debug-url-inline{
+    font-family:ui-monospace,"SF Mono",Consolas,monospace;
+    font-size:11px;
+    word-break:break-all;
+    user-select:all;
+  }
+  .diagnostic-panel{
+    margin:0 0 20px;
+    padding:16px 18px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--hanko);
+  }
+  .diagnostic-panel h3{
+    font-family:var(--font-serif);
+    font-size:14px;
+    margin:0 0 8px;
+  }
+  .diagnostic-result{
+    margin-top:10px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- Add candidate panel ---------- */
+  .add-panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:22px;
+  }
+  .add-panel h2{
+    font-family:var(--font-serif);
+    font-size:18px;
+    margin:0 0 14px;
+  }
+  .mode-tabs{
+    display:flex;
+    gap:0;
+    margin-bottom:16px;
+    border-bottom:1px solid var(--line);
+  }
+  .mode-tab{
+    padding:9px 16px;
+    background:none;
+    border:none;
+    border-bottom:2px solid transparent;
+    font-family:var(--font-sans);
+    font-size:13px;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .mode-tab.active{
+    color:var(--navy);
+    border-bottom-color:var(--navy);
+  }
+  .paste-textarea{
+    width:100%;
+    min-height:280px;
+    font-family:ui-monospace,"SF Mono",Consolas,monospace;
+    font-size:12.5px;
+    padding:12px;
+    border:1px solid var(--line);
+    background:var(--panel-alt);
+    color:var(--ink);
+    resize:vertical;
+  }
+  .form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  .form-field{display:flex;flex-direction:column;gap:4px;}
+  .form-field.full{grid-column:1 / -1;}
+  .form-field label{font-size:12px;color:var(--ink-soft);}
+  .form-field input, .form-field textarea{
+    font-family:var(--font-sans);
+    font-size:13px;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    background:var(--panel);
+  }
+  .form-field textarea{min-height:60px;resize:vertical;}
+  .btn-row{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+  }
+  .btn-primary{
+    padding:10px 20px;
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    font-family:var(--font-sans);
+    font-size:13px;
+    cursor:pointer;
+  }
+  .btn-primary:hover{background:var(--navy-deep);}
+  .btn-secondary{
+    padding:10px 20px;
+    background:var(--panel);
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    font-family:var(--font-sans);
+    font-size:13px;
+    cursor:pointer;
+  }
+  .btn-secondary:hover{border-color:var(--ink-soft);}
+  .parse-preview{
+    margin-top:16px;
+    padding:14px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--ink-soft);
+    white-space:pre-wrap;
+  }
+
+  @media (max-width:820px){
+    .layout{flex-direction:column;padding:16px;}
+    .sidebar{width:100%;flex:none;position:static;display:flex;overflow-x:auto;gap:8px;margin-right:0;margin-bottom:16px;}
+    .candidate-tab{flex:0 0 auto;min-width:160px;margin-bottom:0;}
+    .form-grid{grid-template-columns:1fr;}
+    .app-header, .notice{padding-left:16px;padding-right:16px;margin-left:0;margin-right:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>求職票 検索支援ツール</h1>
+  <p>求職票の分析結果から、DeliciousWorker 求人検索APIを使って候補者ごとに求人を検索します。</p>
+</div>
+
+<div class="notice">
+  <strong>利用にあたって</strong>
+  <ul>
+    <li>各求人カードの「求人ページを見る」は DeliciousWorker への出典リンクです。削除しないでください。</li>
+    <li>給与・条件などのテキストは API が返した内容をそのまま表示しており、このツールでは書き換えていません。</li>
+    <li>カテゴリの例が hall / kitchen / sushi など飲食系であるため、このサイトは飲食・サービス業寄りの求人が中心である可能性があります。医療事務・一般事務系の求職票では該当求人が少ない場合があります。</li>
+    <li>候補者単位での利用を想定しています。全件一括での連続検索など運営に負荷をかける使い方は避けてください。</li>
+    <li>このファイルを直接ダブルクリックして開く（<code>file://</code>で始まるURL）と、サイト側の設定によっては検索がブロックされることがあります。うまく検索できない場合は、下の「APIの疎通確認」で原因を切り分けてください。</li>
+  </ul>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-title">求職票一覧</div>
+    <div id="candidateList"></div>
+    <button class="add-candidate-btn" id="addCandidateBtn">＋ 求職票を追加</button>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+/* ==================== データ構造 ====================
+candidate = {
+  id, label,
+  desiredJob, workContent, qualifications, employmentRaw, locationRaw,
+  workHours, workDays, importantConditions, avoidConditions,
+  targets: [],
+  hints: {},
+  patterns: [{label, queries:[]}],
+  filters: { pref:'', employment:'', wageMin:'', category:'' },
+  lastQuery: null, lastResult: null, lastPage: 1, lastState: 'idle' // idle|loading|error|done
+}
+======================================================= */
+
+let candidates = [];
+let activeId = null;
+let addPanelOpen = false;
+let addMode = 'paste'; // 'paste' | 'manual'
+let parsePreviewText = '';
+
+const INTAKE_LABELS = ['希望職種','仕事内容','経験','資格・スキル','雇用形態','勤務地','勤務時間','勤務日数','重要な希望条件','避けたい条件'];
+const KEYWORD_LABELS = ['おすすめ','職種重視','仕事内容重視','条件重視','類似職種'];
+const HINT_LABELS = ['勤務地','雇用形態','給与','勤務時間','その他'];
+
+function uid(){ return 'c_' + Math.random().toString(36).slice(2,10); }
+
+function normalizeDigits(str){
+  return (str||'').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+}
+
+function stripQuotes(s){
+  return s.replace(/^「/, '').replace(/」$/, '').trim();
+}
+
+function parseIntakeText(text){
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  let section = null;
+  let currentLabel = null;
+  const intake = {};
+  const keywords = {};
+  const targets = [];
+  const hints = {};
+
+  for (const line of lines){
+    if (line.startsWith('■')){
+      if (line.includes('求職内容')) section = 'intake';
+      else if (line.includes('求人検索ワード')) section = 'keywords';
+      else if (line.includes('検索対象')) section = 'targets';
+      else if (line.includes('絞り込み条件')) section = 'hints';
+      else section = null;
+      currentLabel = null;
+      continue;
+    }
+    if (section === 'targets'){
+      if (line.startsWith('・')) targets.push(line.slice(1).trim());
+      continue;
+    }
+    if (section === 'intake'){
+      const exact = INTAKE_LABELS.find(l => line === l + '：' || line === l + ':');
+      if (exact){ currentLabel = exact; intake[currentLabel] = intake[currentLabel] || ''; continue; }
+      const inline = INTAKE_LABELS.find(l => line.startsWith(l + '：') || line.startsWith(l + ':'));
+      if (inline){
+        currentLabel = inline;
+        intake[currentLabel] = line.replace(new RegExp('^' + inline + '[：:]'), '').trim();
+        continue;
+      }
+      if (currentLabel){
+        intake[currentLabel] = (intake[currentLabel] ? intake[currentLabel] + ' ' : '') + line;
+      }
+      continue;
+    }
+    if (section === 'keywords'){
+      const exact = KEYWORD_LABELS.find(l => line === l + '：' || line === l + ':');
+      if (exact){ currentLabel = exact; keywords[currentLabel] = keywords[currentLabel] || []; continue; }
+      const inline = KEYWORD_LABELS.find(l => line.startsWith(l + '：') || line.startsWith(l + ':'));
+      if (inline){
+        currentLabel = inline;
+        keywords[currentLabel] = keywords[currentLabel] || [];
+        const rest = line.replace(new RegExp('^' + inline + '[：:]'), '').trim();
+        if (rest) keywords[currentLabel].push(stripQuotes(rest));
+        continue;
+      }
+      if (currentLabel){
+        keywords[currentLabel] = keywords[currentLabel] || [];
+        keywords[currentLabel].push(stripQuotes(line));
+      }
+      continue;
+    }
+    if (section === 'hints'){
+      const inline = HINT_LABELS.find(l => line.startsWith(l + '：') || line.startsWith(l + ':'));
+      if (inline){
+        hints[inline] = line.replace(new RegExp('^' + inline + '[：:]'), '').trim();
+      }
+      continue;
+    }
+  }
+  return { intake, keywords, targets, hints };
+}
+
+function buildCandidateFromParsed(parsed, labelOverride){
+  const { intake, keywords, targets, hints } = parsed;
+  const patterns = KEYWORD_LABELS
+    .filter(l => keywords[l] && keywords[l].length)
+    .map(l => ({ label: l, queries: keywords[l] }));
+
+  return {
+    id: uid(),
+    label: labelOverride || (intake['希望職種'] ? intake['希望職種'].slice(0,14) : '新規求職票'),
+    desiredJob: intake['希望職種'] || '',
+    workContent: intake['仕事内容'] || '',
+    qualifications: intake['資格・スキル'] || '',
+    employmentRaw: intake['雇用形態'] || '',
+    locationRaw: intake['勤務地'] || '',
+    workHours: intake['勤務時間'] || '',
+    workDays: intake['勤務日数'] || '',
+    importantConditions: intake['重要な希望条件'] || '',
+    avoidConditions: intake['避けたい条件'] || '',
+    targets,
+    hints,
+    patterns,
+    filters: { pref:'', employment:'', wageMin:'', category:'' },
+    lastQuery: null,
+    lastResult: null,
+    lastPage: 1,
+    lastState: 'idle'
+  };
+}
+
+/* ---------- 初期データ(サンプル2件) ---------- */
+const SAMPLE_1 = `■求職内容の整理
+希望職種：
+医療事務、調剤事務、介護事務（判読できる範囲）
+仕事内容：
+事務系業務
+経験：
+記載内容から明確に特定できず
+資格・スキル：
+普通自動車運転免許、秘書検定等の記載あり
+雇用形態：
+問わない
+勤務地：
+市区町村名は判読困難
+勤務時間：
+特に明確な指定は判読できず
+勤務日数：
+記載内容から特定できず
+重要な希望条件：
+医療関係の業種を希望
+避けたい条件：
+記載内容から特定できず
+■求人検索ワード
+おすすめ：
+「医療事務 調剤事務」
+職種重視：
+「医療事務」
+仕事内容重視：
+「医療事務 受付 事務」
+条件重視：
+「医療事務 雇用形態不問」
+類似職種：
+「一般事務 クリニック 事務」
+「介護事務」
+「受付事務」
+■検索対象として考えられる職種
+・医療事務
+・調剤事務
+・介護事務
+・クリニック受付
+・一般事務
+■検索時にサイト側の絞り込み条件として設定した方がよいもの
+勤務地：判読できた市区町村を設定
+雇用形態：問わない
+給与：希望額が判読できる場合のみ設定
+勤務時間：条件が判明した場合のみ設定
+その他：医療・福祉業界`;
+
+const SAMPLE_2 = `■求職内容の整理
+希望職種：
+事務補助
+仕事内容：
+事務補助、事務作業
+経験：
+記載内容から明確に特定できず
+資格・スキル：
+普通自動車運転免許等の記載あり
+雇用形態：
+問わない
+勤務地：
+熊本市
+勤務時間：
+記載内容から特定できず
+勤務日数：
+記載内容から特定できず
+重要な希望条件：
+事務系の仕事を希望
+避けたい条件：
+記載内容から特定できず
+■求人検索ワード
+おすすめ：
+「事務補助 熊本市」
+職種重視：
+「一般事務 熊本市」
+仕事内容重視：
+「事務補助 データ入力 熊本市」
+条件重視：
+「事務補助 熊本市 雇用形態不問」
+類似職種：
+「営業事務 熊本市」
+「総務事務 熊本市」
+「データ入力 熊本市」
+■検索対象として考えられる職種
+・一般事務
+・事務補助
+・データ入力
+・営業事務
+・総務事務
+■検索時にサイト側の絞り込み条件として設定した方がよいもの
+勤務地：熊本市
+雇用形態：問わない
+給与：希望月収１０万円～１５万円程度の記載あり
+勤務時間：求人ごとに確認
+その他：事務職`;
+
+candidates.push(buildCandidateFromParsed(parseIntakeText(SAMPLE_1), '求職票１'));
+candidates.push(buildCandidateFromParsed(parseIntakeText(SAMPLE_2), '求職票２'));
+activeId = candidates[0].id;
+
+/* ---------- API呼び出し ---------- */
+const API_BASE = 'https://deliciousworker.com/api/v1/jobs';
+
+function buildParams(candidate, queryText, page){
+  const params = new URLSearchParams();
+  if (queryText) params.set('q', queryText);
+  if (candidate.filters.pref) params.set('pref', candidate.filters.pref);
+  if (candidate.filters.category) params.set('category', candidate.filters.category);
+  if (candidate.filters.employment) params.set('employment', candidate.filters.employment);
+  if (candidate.filters.wageMin) params.set('wage_min', candidate.filters.wageMin);
+  params.set('page', page || 1);
+  return params;
+}
+
+async function runSearch(candidateId, queryText, page){
+  const candidate = candidates.find(c => c.id === candidateId);
+  if (!candidate) return;
+  candidate.lastQuery = queryText;
+  candidate.lastPage = page || 1;
+  candidate.lastState = 'loading';
+  render();
+
+  const params = buildParams(candidate, queryText, candidate.lastPage);
+  const url = API_BASE + '?' + params.toString();
+  candidate.lastUrl = url;
+  try {
+    const res = await fetch(url);
+    candidate.lastHttpStatus = res.status;
+    if (!res.ok) throw new Error('HTTP ' + res.status + '（サーバーがエラーを返しました）');
+    const data = await res.json();
+    if (page && page > 1 && candidate.lastResult){
+      candidate.lastResult.jobs = candidate.lastResult.jobs.concat(data.jobs || []);
+      candidate.lastResult.total = data.total;
+      candidate.lastResult.page = data.page;
+    } else {
+      candidate.lastResult = data;
+    }
+    candidate.lastState = 'done';
+  } catch (e){
+    candidate.lastState = 'error';
+    // fetch自体が失敗する場合（"Failed to fetch"）は、CORSやネットワーク接続がブロックされている可能性が高い
+    candidate.lastError = e.message || '不明なエラー';
+  }
+  render();
+}
+
+/* ---------- 疎通確認（絞り込みなしでAPIそのものを叩く） ---------- */
+let diagnostic = { state:'idle', url:'', message:'', total:null, sample:null };
+
+async function runDiagnostic(){
+  diagnostic = { state:'loading', url:'', message:'', total:null, sample:null };
+  render();
+  const url = API_BASE + '?page=1';
+  diagnostic.url = url;
+  try {
+    const res = await fetch(url);
+    diagnostic.httpStatus = res.status;
+    if (!res.ok){
+      diagnostic.state = 'error';
+      diagnostic.message = 'HTTP ' + res.status;
+      render();
+      return;
+    }
+    const data = await res.json();
+    diagnostic.state = 'done';
+    diagnostic.total = typeof data.total === 'number' ? data.total : (data.jobs ? data.jobs.length : 0);
+    diagnostic.sample = (data.jobs || []).slice(0,3).map(j => j.title || j.store_name).filter(Boolean);
+  } catch (e){
+    diagnostic.state = 'error';
+    diagnostic.message = e.message || '不明なエラー（CORSまたはネットワークの可能性があります）';
+  }
+  render();
+}
+
+/* ---------- 描画 ---------- */
+function el(html){
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstChild;
+}
+
+function renderCandidateList(){
+  const wrap = document.getElementById('candidateList');
+  wrap.innerHTML = '';
+  candidates.forEach((c, i) => {
+    const tab = el(`
+      <button class="candidate-tab ${c.id === activeId && !addPanelOpen ? 'active' : ''}">
+        <span class="candidate-badge">${i+1}</span>
+        <span class="candidate-tab-label">
+          ${escapeHtml(c.label || '無題')}
+          <span class="candidate-tab-sub">${escapeHtml(c.desiredJob || '希望職種未設定')}</span>
+        </span>
+      </button>
+    `);
+    tab.addEventListener('click', () => { activeId = c.id; addPanelOpen = false; render(); });
+    wrap.appendChild(tab);
+  });
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function fieldHtml(label, value){
+  const v = value && value.trim() ? escapeHtml(value) : '未確認';
+  return `<div class="intake-field"><dt>${label}</dt><dd class="${value && value.trim() ? '' : 'empty'}">${v}</dd></div>`;
+}
+
+function renderDiagnosticPanel(){
+  const panel = el(`
+    <div class="diagnostic-panel">
+      <h3>APIの疎通確認</h3>
+      <div style="font-size:12.5px;color:var(--ink-soft);">
+        キーワードや絞り込み条件を一切つけずにAPIへ直接アクセスし、通信自体が通っているか・求人データがそもそも存在するかを確認します。
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn-secondary" id="diagBtn">条件なしで確認する</button>
+      </div>
+      <div id="diagResult"></div>
+    </div>
+  `);
+  const resultEl = panel.querySelector('#diagResult');
+  panel.querySelector('#diagBtn').addEventListener('click', runDiagnostic);
+
+  if (diagnostic.state === 'loading'){
+    resultEl.appendChild(el(`<div class="diagnostic-result">確認中…</div>`));
+  } else if (diagnostic.state === 'done'){
+    const sampleText = diagnostic.sample && diagnostic.sample.length
+      ? '例: ' + diagnostic.sample.join(' / ')
+      : '（サンプルなし）';
+    resultEl.appendChild(el(`
+      <div class="diagnostic-result">
+        通信に成功しました。全体で ${diagnostic.total} 件のデータが確認できます。${escapeHtml(sampleText)}<br>
+        <span class="debug-url-inline">${escapeHtml(diagnostic.url)}</span>
+      </div>
+    `));
+  } else if (diagnostic.state === 'error'){
+    resultEl.appendChild(el(`
+      <div class="diagnostic-result" style="color:var(--hanko);">
+        通信に失敗しました（${escapeHtml(diagnostic.message||'')}）。file:// で直接開いている場合は、簡易サーバー経由（例: <code>python -m http.server</code>）で開き直すと解決することがあります。<br>
+        <span class="debug-url-inline">${escapeHtml(diagnostic.url)}</span>
+      </div>
+    `));
+  }
+  return panel;
+}
+
+function renderMain(){
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  if (addPanelOpen){
+    main.appendChild(renderAddPanel());
+    return;
+  }
+
+  main.appendChild(renderDiagnosticPanel());
+
+  const candidate = candidates.find(c => c.id === activeId);
+  if (!candidate){
+    main.appendChild(el(`<div class="state-message">求職票を選択するか、新しく追加してください。</div>`));
+    return;
+  }
+
+  const card = el(`
+    <div class="intake-card">
+      <div class="intake-card-top">
+        <input class="intake-label-input" id="labelInput" value="${escapeHtml(candidate.label)}">
+        <button class="delete-link" id="deleteBtn">この求職票を削除</button>
+      </div>
+      <dl class="intake-grid">
+        ${fieldHtml('希望職種', candidate.desiredJob)}
+        ${fieldHtml('仕事内容', candidate.workContent)}
+        ${fieldHtml('資格・スキル', candidate.qualifications)}
+        ${fieldHtml('雇用形態(求職票記載)', candidate.employmentRaw)}
+        ${fieldHtml('勤務地(求職票記載)', candidate.locationRaw)}
+        ${fieldHtml('勤務時間', candidate.workHours)}
+        ${fieldHtml('重要な希望条件', candidate.importantConditions)}
+        ${fieldHtml('避けたい条件', candidate.avoidConditions)}
+      </dl>
+    </div>
+    <hr class="perforation">
+  `);
+
+  card.querySelector('#labelInput').addEventListener('change', (e) => {
+    candidate.label = e.target.value;
+    renderCandidateList();
+  });
+  card.querySelector('#deleteBtn').addEventListener('click', () => {
+    if (!confirm(candidate.label + ' を削除します。よろしいですか？')) return;
+    candidates = candidates.filter(c => c.id !== candidate.id);
+    activeId = candidates.length ? candidates[0].id : null;
+    render();
+  });
+
+  main.appendChild(card);
+
+  /* 絞り込み条件 */
+  const filterRow = el(`
+    <div class="filter-row">
+      <div class="filter-field">
+        <label for="f_pref">勤務地(pref パラメータ)</label>
+        <input type="text" id="f_pref" placeholder="例: 熊本県 / kumamoto" value="${escapeHtml(candidate.filters.pref)}">
+        <span class="filter-hint">空欄で全国対象。市区町村名はキーワード側に含めます。</span>
+      </div>
+      <div class="filter-field">
+        <label for="f_employment">雇用形態</label>
+        <select id="f_employment">
+          <option value="">指定しない（問わない）</option>
+          <option value="FULL_TIME">正社員(FULL_TIME)</option>
+          <option value="PART_TIME">パート・アルバイト(PART_TIME)</option>
+          <option value="CONTRACTOR">契約・業務委託(CONTRACTOR)</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="f_wage">給与下限(wage_min)</label>
+        <input type="number" id="f_wage" placeholder="例: 900" value="${escapeHtml(candidate.filters.wageMin)}">
+        <span class="filter-hint">単位はAPI仕様に未記載のため、結果を見ながら調整してください。</span>
+      </div>
+      <div class="filter-field">
+        <label for="f_category">カテゴリ(category)</label>
+        <input type="text" id="f_category" list="categoryOptions" placeholder="例: hall, kitchen, sushi" value="${escapeHtml(candidate.filters.category)}">
+        <datalist id="categoryOptions"></datalist>
+        <span class="filter-hint">飲食系のコード体系の可能性があります。空欄可。</span>
+      </div>
+    </div>
+  `);
+  filterRow.querySelector('#f_employment').value = candidate.filters.employment;
+  filterRow.querySelector('#f_pref').addEventListener('change', e => candidate.filters.pref = e.target.value.trim());
+  filterRow.querySelector('#f_employment').addEventListener('change', e => candidate.filters.employment = e.target.value);
+  filterRow.querySelector('#f_wage').addEventListener('change', e => candidate.filters.wageMin = e.target.value.trim());
+  filterRow.querySelector('#f_category').addEventListener('change', e => candidate.filters.category = e.target.value.trim());
+  main.appendChild(filterRow);
+  populateCategoryDatalist(filterRow.querySelector('#categoryOptions'));
+
+  /* 検索パターン */
+  const patternsWrap = el(`<div class="patterns"></div>`);
+  if (!candidate.patterns.length){
+    patternsWrap.appendChild(el(`<div class="no-patterns">検索ワードのパターンが登録されていません。求職票の分析結果を貼り付けて追加してください。</div>`));
+  } else {
+    candidate.patterns.forEach(group => {
+      const groupEl = el(`
+        <div class="pattern-group">
+          <div class="pattern-group-title">${escapeHtml(group.label)} <span class="count">(${group.queries.length}件)</span></div>
+          <div class="chip-row"></div>
+        </div>
+      `);
+      const chipRow = groupEl.querySelector('.chip-row');
+      group.queries.forEach(q => {
+        const chip = el(`<button class="chip ${candidate.lastQuery === q ? 'active' : ''}">${escapeHtml(q)}</button>`);
+        chip.addEventListener('click', () => runSearch(candidate.id, q, 1));
+        chipRow.appendChild(chip);
+      });
+      patternsWrap.appendChild(groupEl);
+    });
+  }
+  main.appendChild(patternsWrap);
+
+  /* 結果 */
+  main.appendChild(renderResults(candidate));
+}
+
+let metaCategories = null;
+let metaLoadFailed = false;
+
+async function loadGlobalMeta(){
+  try {
+    const res = await fetch('https://deliciousworker.com/api/dw/meta');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const list = data.categories || data.category || data.items || [];
+    metaCategories = list.map(item => {
+      const code = typeof item === 'string' ? item : (item.code || item.value || item.id || '');
+      const labelText = typeof item === 'string' ? item : (item.label || item.name || code);
+      return { code, label: labelText };
+    }).filter(c => c.code);
+  } catch (e){
+    // カテゴリ一覧のAPIはCORS未対応の可能性があるため、失敗しても検索自体は継続できる
+    metaCategories = null;
+    metaLoadFailed = true;
+  }
+  render();
+}
+
+function populateCategoryDatalist(datalistEl){
+  datalistEl.innerHTML = '';
+  if (!metaCategories) return;
+  metaCategories.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.code;
+    opt.label = c.label;
+    datalistEl.appendChild(opt);
+  });
+}
+
+function renderResults(candidate){
+  const wrap = el(`<div class="results-section"></div>`);
+  if (candidate.lastState === 'idle'){
+    wrap.appendChild(el(`<div class="state-message">上のボタンから検索ワードを選ぶと、ここに求人が表示されます。</div>`));
+    return wrap;
+  }
+  if (candidate.lastState === 'loading' && !candidate.lastResult){
+    wrap.appendChild(el(`<div class="state-message">検索中です…</div>`));
+    return wrap;
+  }
+  if (candidate.lastState === 'error'){
+    wrap.appendChild(el(`
+      <div class="state-message error">
+        検索に失敗しました（${escapeHtml(candidate.lastError||'')}）。<br>
+        「Failed to fetch」の場合は通信自体がブロックされています。下のURLをコピーして新しいタブで直接開き、結果が表示されるか確認してください。
+        <div class="debug-url">${escapeHtml(candidate.lastUrl||'')}</div>
+      </div>
+    `));
+    return wrap;
+  }
+
+  const data = candidate.lastResult;
+  const jobs = (data && data.jobs) || [];
+  const header = el(`
+    <div class="results-header">
+      <h2>検索結果</h2>
+      <span class="results-meta">検索語:「${escapeHtml(candidate.lastQuery||'')}」　該当 ${data && typeof data.total === 'number' ? data.total : jobs.length} 件</span>
+    </div>
+  `);
+  wrap.appendChild(header);
+
+  if (!jobs.length){
+    wrap.appendChild(el(`
+      <div class="state-message">
+        該当する求人が見つかりませんでした。キーワードや絞り込み条件を変えて再検索してください。<br>
+        実際にAPIへ送ったURL: <span class="debug-url-inline">${escapeHtml(candidate.lastUrl||'')}</span>
+      </div>
+    `));
+    return wrap;
+  }
+
+  const list = el(`<div class="job-list"></div>`);
+  jobs.forEach(job => {
+    const card = el(`
+      <div class="job-card">
+        <div class="job-main">
+          <p class="job-title">${escapeHtml(job.title || '(タイトル未設定)')}</p>
+          <p class="job-store">${escapeHtml(job.store_name || '')}</p>
+          <div class="job-badges">
+            ${job.wage_text ? `<span class="job-badge wage">${escapeHtml(job.wage_text)}</span>` : ''}
+            ${job.pref_label ? `<span class="job-badge">${escapeHtml(job.pref_label)}</span>` : ''}
+            ${job.employment ? `<span class="job-badge">${escapeHtml(job.employment)}</span>` : ''}
+          </div>
+        </div>
+        <div class="job-link-wrap">
+          ${job.job_url ? `<a class="job-link" href="${escapeHtml(job.job_url)}" target="_blank" rel="noopener">求人ページを見る</a>` : ''}
+          <span class="job-source">出典: DeliciousWorker</span>
+        </div>
+      </div>
+    `);
+    list.appendChild(card);
+  });
+  wrap.appendChild(list);
+
+  const total = data && typeof data.total === 'number' ? data.total : null;
+  const loadedCount = jobs.length;
+  if (total === null || loadedCount < total){
+    const moreBtn = el(`<button class="load-more">さらに読み込む</button>`);
+    moreBtn.addEventListener('click', () => runSearch(candidate.id, candidate.lastQuery, (candidate.lastPage||1) + 1));
+    wrap.appendChild(moreBtn);
+  }
+
+  return wrap;
+}
+
+/* ---------- 求職票の追加 ---------- */
+function renderAddPanel(){
+  const panel = el(`
+    <div class="add-panel">
+      <h2>求職票を追加</h2>
+      <div class="mode-tabs">
+        <button class="mode-tab ${addMode==='paste'?'active':''}" data-mode="paste">分析結果を貼り付けて自動解析</button>
+        <button class="mode-tab ${addMode==='manual'?'active':''}" data-mode="manual">手動で入力する</button>
+      </div>
+      <div id="addPanelBody"></div>
+    </div>
+  `);
+
+  panel.querySelectorAll('.mode-tab').forEach(btn => {
+    btn.addEventListener('click', () => { addMode = btn.dataset.mode; render(); });
+  });
+
+  const body = panel.querySelector('#addPanelBody');
+  if (addMode === 'paste'){
+    body.appendChild(renderPasteMode());
+  } else {
+    body.appendChild(renderManualMode());
+  }
+  return panel;
+}
+
+function renderPasteMode(){
+  const wrap = el(`
+    <div>
+      <textarea class="paste-textarea" id="pasteArea" placeholder="■求職内容の整理　から始まる分析結果テキストをそのまま貼り付けてください">${escapeHtml(parsePreviewText)}</textarea>
+      <div class="btn-row">
+        <button class="btn-primary" id="parseBtn">解析して追加</button>
+        <button class="btn-secondary" id="cancelBtn">キャンセル</button>
+      </div>
+      <div id="previewArea"></div>
+    </div>
+  `);
+  wrap.querySelector('#pasteArea').addEventListener('input', e => parsePreviewText = e.target.value);
+  wrap.querySelector('#cancelBtn').addEventListener('click', () => { addPanelOpen = false; parsePreviewText=''; render(); });
+  wrap.querySelector('#parseBtn').addEventListener('click', () => {
+    const text = wrap.querySelector('#pasteArea').value;
+    if (!text.trim()){ alert('テキストを貼り付けてください。'); return; }
+    const parsed = parseIntakeText(text);
+    if (!parsed.intake['希望職種'] && !Object.keys(parsed.keywords).length){
+      const preview = wrap.querySelector('#previewArea');
+      preview.innerHTML = '';
+      preview.appendChild(el(`<div class="parse-preview">項目を読み取れませんでした。フォーマット（■求職内容の整理　など）をご確認ください。手動入力もご利用いただけます。</div>`));
+      return;
+    }
+    const label = '求職票' + (candidates.length + 1);
+    const newCandidate = buildCandidateFromParsed(parsed, label);
+    candidates.push(newCandidate);
+    activeId = newCandidate.id;
+    addPanelOpen = false;
+    parsePreviewText = '';
+    render();
+  });
+  return wrap;
+}
+
+function renderManualMode(){
+  const wrap = el(`
+    <div>
+      <div class="form-grid">
+        <div class="form-field"><label>表示名</label><input id="m_label" placeholder="例: 求職票３"></div>
+        <div class="form-field"><label>希望職種</label><input id="m_job" placeholder="例: 一般事務"></div>
+        <div class="form-field full"><label>検索ワード（1行に1つ。「おすすめ」として登録されます）</label>
+          <textarea id="m_queries" placeholder="一般事務 熊本市&#10;事務補助 熊本市"></textarea>
+        </div>
+        <div class="form-field"><label>重要な希望条件</label><input id="m_important" placeholder="任意"></div>
+        <div class="form-field"><label>避けたい条件</label><input id="m_avoid" placeholder="任意"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="manualAddBtn">追加する</button>
+        <button class="btn-secondary" id="manualCancelBtn">キャンセル</button>
+      </div>
+    </div>
+  `);
+  wrap.querySelector('#manualCancelBtn').addEventListener('click', () => { addPanelOpen = false; render(); });
+  wrap.querySelector('#manualAddBtn').addEventListener('click', () => {
+    const label = wrap.querySelector('#m_label').value.trim() || ('求職票' + (candidates.length + 1));
+    const job = wrap.querySelector('#m_job').value.trim();
+    const queriesRaw = wrap.querySelector('#m_queries').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    const important = wrap.querySelector('#m_important').value.trim();
+    const avoid = wrap.querySelector('#m_avoid').value.trim();
+    const newCandidate = {
+      id: uid(), label,
+      desiredJob: job, workContent:'', qualifications:'', employmentRaw:'', locationRaw:'',
+      workHours:'', workDays:'', importantConditions: important, avoidConditions: avoid,
+      targets: [], hints: {},
+      patterns: queriesRaw.length ? [{ label:'おすすめ', queries: queriesRaw }] : [],
+      filters: { pref:'', employment:'', wageMin:'', category:'' },
+      lastQuery:null, lastResult:null, lastPage:1, lastState:'idle'
+    };
+    candidates.push(newCandidate);
+    activeId = newCandidate.id;
+    addPanelOpen = false;
+    render();
+  });
+  return wrap;
+}
+
+document.getElementById('addCandidateBtn').addEventListener('click', () => {
+  addPanelOpen = true;
+  addMode = 'paste';
+  render();
+});
+
+function render(){
+  renderCandidateList();
+  renderMain();
+}
+
+render();
+loadGlobalMeta();
+</script>
+</body>
+</html>
